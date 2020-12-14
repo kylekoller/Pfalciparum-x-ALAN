@@ -3,7 +3,7 @@
 # setwd("C:/Users/kylek/Dropbox/RegWork/Malaria")
 
 df <- read.csv('mdata_concise.csv', header = TRUE, fileEncoding = 'UTF-8-BOM')
-library(mgcv); library(dplyr); library(ggplot2)
+library(mgcv); library(dplyr); library(ggplot2); library(ggregplot); library(magrittr)
 set.seed(888)
 
 ## base model with single smooth for space and month as RE ##
@@ -85,4 +85,39 @@ working <- gam(trans_pf_per ~ s(Month, bs = "re") + s(Latitude.x) + s(Longitude.
 
 working2 <- gam(trans_pf_per ~ as.factor(Month) + s(Latitude.x) + s(Longitude.y) +  s(Latitude.x, Longitude.y), family = ziP(), data = df, method = "REML")
 
-sapply(list(working, working2), deviance)
+working3 <- gam(trans_pf_per ~ as.factor(Month) + s(Latitude.x) + s(Longitude.y) +  te(Latitude.x, Longitude.y), family = ziP(), data = df, method = "REML")
+
+working4 <- gam(trans_pf_per ~ as.factor(Month) + s(Latitude.x) + s(Longitude.y) +  ti(Latitude.x, Longitude.y), family = ziP(), data = df, method = "REML")
+
+working5 <- gam(trans_pf_per ~ as.factor(Month) + t2(Latitude.x, Longitude.y), family = ziP(), data = df, method = "REML")
+
+sapply(list(working, working2, working3, working4, working5), deviance)
+
+# Adding model addition ####
+
+AddCovar <- c("s(Longitude.y)", "Longitude.y", 
+              "s(Latitude.x)", "Latitude.x",
+              "ti(Latitude.x, Longitude.y)",
+              "s(Latitude.x, Longitude.y)",
+              "te(Latitude.x, Longitude.y)",
+              "t2(Latitude.x, Longitude.y)",
+              "s(Latitude.x, Longitude.y, bs = 'ad')"
+)
+
+ClashList <- list(AddCovar[1:2],
+                  AddCovar[1:2+2],
+                  AddCovar[5:7],
+                  AddCovar[c(1:4, 6:7)])
+
+df %<>% mutate_at("Month", as.factor)
+
+BAM1 <- BAMModelAdd(
+  
+  Response =  "trans.pf.per",
+  Data = df,
+  Explanatory = "Month",
+  Add = AddCovar,
+  Clashes = ClashList,
+  Family = ziP()
+  
+)
