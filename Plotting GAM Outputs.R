@@ -39,3 +39,18 @@ FitList %>%
   labs(x = "Longitude", y = "Latitude") + 
   geom_point(data = df) +
   facet_wrap(~Month)
+
+# Plotting site-specific GAMM Outputs ####
+
+FitList <- 
+  unique(df[,c("trans.pf.per", "Latitude.x", "Longitude.y", "SiteID")]) %>% 
+  mutate(Month = df$Month[[5]])
+
+FitPredictions.s.ti <- predict.gam(Model,
+                                   newdata = FitList,
+                                   se.fit = T)
+
+FitList[,c("Fit", "Lower", "Upper")] <-
+  with(FitPredictions.s.ti, cbind(fit, fit - se.fit, fit + se.fit))
+
+FitList %>% ggplot(aes(trans.pf.per, exp(Fit))) + geom_point() + geom_smooth(method = lm)
